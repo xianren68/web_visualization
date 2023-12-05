@@ -1,7 +1,7 @@
 /**
  * 创建着色器
  * @param {WebGLRenderingContext} gl  渲染上下文
- * @param {gl.VERTEX_SHADER | gl.FRAGMENT_SHADER} type  着色器类型
+ * @param {number} type  着色器类型
  * @param {string} source  数据源
  * @return {WebGLShader | null}
  */

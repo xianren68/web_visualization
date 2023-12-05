@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>缓冲区</title>
+</head>
+<style>
+    canvas {
+        height: 500px;
+        width: 500px;
+        background-color: gray;
+    }
+</style>
+
+<body>
+    <script type="x-shader/x-vertex" id="vertex">
+        // 点的坐标（canvas)
+        attribute vec2 a_position;
+        // canvas的尺寸
+        uniform vec2 screenSize;
+        void main(){
+            // 转化为webGl坐标
+            float x = a_position.x * 2.0 / screenSize.x - 1.0;
+            float y = 1.0 - (a_position.y * 2.0 / screenSize.y);
+            gl_Position = vec4(x,y,0,1);
+            gl_PointSize = 3.0;
+        }
+    </script>
+    <script type="x-shader/x-fragment" id="fragment">
+        // 设置精度
+        precision mediump float;
+        uniform vec4 u_color;
+        void main(){
+            gl_FragColor = u_color;
+        }
+    </script>
+    <canvas id="gl" width="500" height="500"></canvas>
+    <script type="module">
+        import { createShader, createProgram } from '../../lib/lib.js'
+        // 获取着色器源码
+        const vertexSource = document.getElementById("vertex").text
+        const fragmentSource = document.getElementById("fragment").text
+        const canvas = document.getElementById("gl")
+        // 获取着色器渲染上下文
+        const gl = canvas.getContext("webgl")
+        // 创建着色器对象
+        const vertexShader = createShader(gl, gl.VERTEX_SHADER, vertexSource)
+        const fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fragmentSource)
+        // 创建着色器程序
+        const program = createProgram(gl, vertexShader, fragmentShader)
+        // 使用着色器程序
+        gl.useProgram(program)
+        // 获取属性
+        const aPosition = gl.getAttribLocation(program, 'a_position')
+        // 获取全局变量
+        const screenSize = gl.getUniformLocation(program, 'screenSize')
+        const uColor = gl.getUniformLocation(program, 'u_color')
+        // 设置尺寸
+        gl.uniform2f(screenSize, canvas.offsetWidth, canvas.offsetHeight)
+        // 设置颜色
+        gl.uniform4f(uColor, 1.0, 1.0, 1.0, 1.0)
+        // 创建缓冲区
+        const positionBuffer = gl.createBuffer()
+        // 关联缓冲区对象
+        gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer)
+        // 缓冲区数组(一个矩形由两个三角形组成)
+        // 正面图形应该逆时针写点
+        const points = new Float32Array([
+            50,50,
+            50,100,
+            150,100,
+
+            50,50,
+            150,100,
+            150,50
+        ])
+        // 顶点数据写入缓冲区对象
+        gl.bufferData(gl.ARRAY_BUFFER, points, gl.STATIC_DRAW)
+        // 给attribute变量赋值
+        gl.vertexAttribPointer(aPosition, 2, gl.FLOAT, false, 4*2, 0)
+        // 激活attribute变量
+        gl.enableVertexAttribArray(aPosition)
+        // 绘制3个点
+        gl.drawArrays(gl.TRIANGLES, 0, 6)
+    </script>
+</body>
+
+</html>
