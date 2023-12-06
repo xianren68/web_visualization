@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ring</title>
+</head>
+<style>
+    canvas{
+        height: 500px;
+        width:500px;
+        background-color: aquamarine;
+    }
+</style>
+<body>
+    <script type="x-shader/x-vertex" id="vertex">
+        attribute vec2 a_position;
+        // canvas尺寸
+        uniform vec2 screen_size;
+        void main(){
+            float x = a_position.x * 2.0 / screen_size.x - 1.0;
+            float y = 1.0 - (a_position.y * 2.0 / screen_size.y);
+            gl_Position = vec4(x,y,0,1);
+        }
+    </script>
+    <script type="x-shader/x-fragment" id="fragment">
+        precision mediump float;
+        uniform vec4 a_color;
+        void main(){
+            gl_FragColor = a_color;
+        }
+    </script>
+    <canvas id="gl" height="500" width="500"></canvas>
+</body>
+    <script type="module">
+        import {createProgram,createShader,drawRing} from '../../lib/lib.js'
+        // 获取着色器源码
+        const vertexSource = document.getElementById("vertex").text
+        const fragmentSource = document.getElementById("fragment").text
+        const canvas = document.getElementById("gl")
+        // 获取着色器渲染上下文
+        const gl = canvas.getContext("webgl")
+        // 创建着色器对象
+        const vertexShader = createShader(gl, gl.VERTEX_SHADER, vertexSource)
+        const fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fragmentSource)
+        // 创建着色器程序
+        const program = createProgram(gl, vertexShader, fragmentShader)
+        // 使用着色器程序
+        gl.useProgram(program)
+        // 获取圆的顶点数组
+        const {points,indexs} = drawRing({x:250,y:250},50,100,50)
+        // 获取属性
+        const aPosition = gl.getAttribLocation(program,'a_position')
+        // 获取全局变量
+        const aColor = gl.getUniformLocation(program,'a_color')
+        const screenSize = gl.getUniformLocation(program,'screen_size')
+        // 设置尺寸
+        gl.uniform2f(screenSize, canvas.offsetWidth, canvas.offsetHeight)
+        // 设置颜色
+        gl.uniform4f(aColor, 1.0, 1.0, 1.0, 1.0)
+        // 创建缓冲区
+        const verTexBuffer = gl.createBuffer()
+        const indexBuffer = gl.createBuffer()
+        // 关联缓冲区
+        gl.bindBuffer(gl.ARRAY_BUFFER,verTexBuffer)
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,indexBuffer)
+        // 写入数据
+        gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(points),gl.STATIC_DRAW)
+        gl.bufferData(gl.ELEMENT_ARRAY_BUFFER,new Uint8Array(indexs),gl.STATIC_DRAW)
+        // 给变量赋值
+        gl.vertexAttribPointer(aPosition,2,gl.FLOAT,false,4*2,0)
+        // 激活属性
+        gl.enableVertexAttribArray(aPosition)
+        // 绘制(三角形扇组成圆)
+        gl.drawElements(gl.TRIANGLE_STRIP,indexs.length,gl.UNSIGNED_BYTE,0)
+        
+    </script>
+</html>
