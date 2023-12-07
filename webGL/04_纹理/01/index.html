@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>纹理</title>
+</head>
+<style>
+    canvas {
+        height: 500px;
+        width: 500px;
+        background-color: gray;
+    }
+</style>
+
+<body>
+    <script type="x-shader/x-vertex" id="vertex">
+        // 点的坐标（canvas)
+        attribute vec2 a_position;
+        // canvas的尺寸
+        uniform vec2 screenSize;
+        attribute vec2 tex;
+        // 接收纹理
+        varying vec2 texTranslate;
+        void main(){
+            // 转化为webGl坐标
+            float x = a_position.x * 2.0 / screenSize.x - 1.0;
+            float y = 1.0 - (a_position.y * 2.0 / screenSize.y);
+            texTranslate = tex;
+            gl_Position = vec4(x,y,0,1);
+            gl_PointSize = 3.0;
+        }
+    </script>
+    <script type="x-shader/x-fragment" id="fragment">
+        // 设置精度
+        precision mediump float;
+        uniform sampler2D uSampler;
+        varying vec2 texTranslate;
+        void main(){
+            // 设置纹理
+            gl_FragColor = texture2D(uSampler,texTranslate);
+        }
+    </script>
+    <canvas id="gl" width="500" height="500"></canvas>
+    <script type="module">
+        import { createShader, createProgram } from '../../lib/lib.js'
+        // 获取着色器源码
+        const vertexSource = document.getElementById("vertex").text
+        const fragmentSource = document.getElementById("fragment").text
+        const canvas = document.getElementById("gl")
+        // 获取着色器渲染上下文
+        const gl = canvas.getContext("webgl")
+        // 创建着色器对象
+        const vertexShader = createShader(gl, gl.VERTEX_SHADER, vertexSource)
+        const fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fragmentSource)
+        // 创建着色器程序
+        const program = createProgram(gl, vertexShader, fragmentShader)
+        // 使用着色器程序
+        gl.useProgram(program)
+        // 获取属性
+        const aPosition = gl.getAttribLocation(program, 'a_position')
+        const tex = gl.getAttribLocation(program, 'tex')
+        // 获取全局变量
+        const screenSize = gl.getUniformLocation(program, 'screenSize')
+        const sampler = gl.getUniformLocation(program, 'uSampler')
+        // 设置尺寸
+        gl.uniform2f(screenSize, canvas.offsetWidth, canvas.offsetHeight)
+        // 创建缓冲区
+        const positionBuffer = gl.createBuffer()
+        // 关联缓冲区对象
+        gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer)
+        // 正面图形应该逆时针写点
+        const points = new Float32Array([
+            50, 100, 0.0, 0.0,
+            50, 50, 0.0, 1.0,
+            150, 100, 1.0, 0.0,
+            150, 50, 1.0, 1.0
+        ])
+        // 顶点数据写入缓冲区对象
+        gl.bufferData(gl.ARRAY_BUFFER, points, gl.STATIC_DRAW)
+        // 给attribute变量赋值
+        gl.vertexAttribPointer(aPosition, 2, gl.FLOAT, false, 4 * 4, 0)
+        gl.vertexAttribPointer(tex, 2, gl.FLOAT, false, 4 * 4, 4 * 2)
+        // 激活attribute变量
+        gl.enableVertexAttribArray(aPosition)
+        gl.enableVertexAttribArray(tex)
+        // 创建图片对象
+        const img = new Image()
+        img.src = 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wCEAAkGBwgHBgkIBwgKCgkLDRYPDQwMDRsUFRAWIB0iIiAdHx8kKDQsJCYxJx8fLT0tMTU3Ojo6Iys/RD84QzQ5OjcBCgoKDQwNGg8PGjclHyU3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3N//AABEIAJQAywMBIgACEQEDEQH/xAAaAAACAwEBAAAAAAAAAAAAAAAEBQIDBgAB/8QAOxAAAgECBAQDBAgGAgMBAAAAAQIDABEEEiExBRNBUSJhcRQygZEGQlJyobHB0RUjYoLh8DOSJEOyFv/EABoBAAIDAQEAAAAAAAAAAAAAAAMEAQIFAAb/xAAlEQACAQQCAgIDAQEAAAAAAAABAgADBBEhEjETQSJRFDKxcYH/2gAMAwEAAhEDEQA/AEL8NAu0J+Df7pQzwmM2cWNbSSHD4gXdRc/WSgsTwx2F0tInlvTgrlThxiMNa0qgzSMysmGkIJQBx3G9DlLGx3p3JhJIpC8JII6bEV7HLh2VhIqq+zZl3ppXz1M+pRZDhtRKFq5FI3FGz4NF8cTD7hbShwHtsRbfTarg5gcY7noFUzwMxDDUdqvQgb6VZdRbX5VadqLRGQTodNTpV0XK0uNe9HrZhofW1UYqILYqNfIWrpHW4JPFle+4NQCk0XFh3kGa4t5mvJY8rWArpXcrQKFOa97aWrshc6jS9TCGuKGunZlUkaKf6u9WRxBwFBr0R3YFtqNCxRLpYVBl17gZwoUEsb22quPBTTLPIiZkhAaQg+6CbXt62+dGNMt7IdaP4RxCHhuMkxEOGEoeFojDM2ZWuPraajyqjlgNCWAUncQtCNhr6V4MPeBpOYi2awQ3u3p/mm/EsViMbiTiMY8ecgKFRAqovYAbCgXV5WsAcvQVK5I3IIAOBAQl9hUlQkgA0y9lUi7HKANu9eIir7q2qcyOJg64bKL9a8MVFtvYVywM24sKqWxCin9wHk3NS5HlR4jCiwtXadhVRzbqVZ0XqaPiEJw0wMN7uCcq1UMXLE+WQG/YjKa1mFwMPtIxLqzyKLLf6or3i/DcHi8MxxKISqnKxNsvpSS3o0jDM03s22ynBmb50GKFplAPc6H59aDxnB1lXPD47dj4h+9AJnj1U3t03orD46SIjcW69qaNFRumcfyKi8OOFXYi/LNhfBlVk7kbVKDkCTM6MpOxBuKf8zC45CJlAY/Wtv60DjOFNAC0dyncHSpFT0+jOe3BHKkciBucLI2Q5QbfZoKfD8uSwIKnY9vWjZczQxw6KiEsLIASx6k7k2016CvQJWTKSHUfVajCIscnEAeMoQYxIFIGrAanra3SvAz311HZqZxTLEtuWcv2DqPh2r2RoHFzGCD0A1FTykf9ixSQfdFeuAynSiWhiOsb2/pIqsx2qZUtBgvlXuXyq/l16ErpGYOVAv5CvChJJ386NRCGVgBcbXFdIodyyxogtbKosAKjMtkYgYguL2qxYGRS5sANqKRMviNrCozO8gyhQBUZMnQEGji5zjmHTudqJPLU5Y7E9AKqyXte5tRWE4e83iYWTz61DFQMkyycj1B1JlsI1zG179KJTBNlu9vlTWOCPDRgBdu9BzYpSxA8R8ulAyz9aEMaqINbMFaJE2XWqXNvSrpXY62+VDlC/XSjKirsxZmZjkyvxO6pGrMzGyqBqT2ok8I4ips+EdW6gnUVouA8NHDeTjMVE/tYu0anTIpFgfWxPpp1ouRszsTckm970GpdnOFj1GxBXk57jiN1UEFgCN9dqtyc7dhbpSZgzEk6micKZIzcEZTuprLe3wM53NpKpc4xOxf0dixuIaRZMgKgCyi5Pf8AKkHEeDPgpBHKvisSNbg+dbGDEO62JAIoTj0ftMIxBT+ZF1v0O9Et7ior8GMUu7VeBcCYzkMpGmVquw+Ing0BzL1WjyuZbOA3Y2qAgBOutaZYHuYwDKfiZTLh4MWM0QyTW91jofQ96DaBUBVo2Et+vSmHs5B8N6vEXOULMCSBZX6j/FRkL/ktuod9xIYSehrhFbSnS4KxGbfuOtevgBa4NV/ITPcItjWxnESGDS9vK9RfDEC9NnwZC26b1TyKKHz1F3plDhhFnJtXqwk7Ux5F+lSXDXvsNL69atzg+MXiI9r1P2ViMzC1Mo8Ke1E+y+Ea37jzoD11XUbo2r1F5YiZcKOtWrh0GipemyYRDo6mxBsVOxtpXjQiEZrZ5en2VqnmDHAMK1saYywgSYKNAJZwFHQGozYq5yQILDqavZDIDzhmY7G9rVy4N3gzqLqDZrDbS9W0NtF2JbSxeyPMbzEntXjwlUU5DZtjbQ0cMOL2NF4Tg0uKuwyoijdjers4XZMhUZvio3EHKJ3q3CwK2IiD+FS4BNttac/wtlxZw97EC5byq6ThGUryZNSdc3SqPXQDGexCU7Ss3yA6MNx2eXFOzXLE6X3t0/Cg2QgkEUzmQxxRiRzJKF989aCYXYk1nU3nojSJUHEA4fxAzzMrgKdxan2FAJF7a96xCZkYEXBrQfR/EvKJIpGLFbFb/jTVzR1yERtLkE8G7mqhwYJupobjOFniwy5crRubNZdR2qUE7RoVVraV6JnL5mOa/RtqzlJVsxmqjOCMzPthyDbtuDpUeTWn9ijxcJLgK5Hht1pfJgXjNnUqexp1LgN3Mp7cocCKhDVqRhelFvCEGo19a8SK5B6UOrWzNCytuJ5Gdh8O0jBQB8aNHDYv/bJGP7qKjg9nwrS3QN3Y2y/vS2VmkJLE673oFNC+4evdcf1lj8JDhjBIkgHRTelM2DKuQRYg7UxjZ42DIxUjYjpRjBcdDlc2xC+6fteVMDlSOcxNqiXI4v3M7yNdqkuHFr22pg8QQEn/ACT2ojDQrBGMRLZ2PuxHa3nRXrnGFgKNoASz9D+yvBcKeRBJLZFt4SxsBVy8Ow6nIs8fN6i+a46VRiJXlQ5jeM9B9X0qCJaxOhtfTWljSJ2xjP5Z/VBqWT4J0GdLMpHSgHhB3p7g5IiiRuGBPhIGx7G/+7UBjYgrnKuXXUHW1CBZG7jqMtwhVhFZhr0QlltchL3I6UUuUtk0zdBfpRcOD5iOzNlA93zNaAq/HcxK1sVqYWR4Hw6GbENJKPBEL2brR+PKYdxHhVCggEkCrIooMNhGPMZ3Y9rMfL0oV15jWUNt60szc35eoxSTguPcHWEZzObmRxYsai5t0prBaTCcpks0ZNiR7w3oDEQlBc7GlS2X3NO2K8cCCyuXFjuNqGI13UerCvMZjosMcpu0lvd/es+3jYszHMTc03RoMZFe6RNCeKmd70fw/ER8PnaWRWK5bHL01FEJwebIWbKG6LvegOIxtHEABodG9adLJU+AMxAtSgObDBkouMYszyXk8Eh2J9zXpWm4LO2Iw5EhJdDbMdyN6w6XB03rQ/R/ELh5EM0lo2BU+Xag3dIBcrGLGuXJVjNngrAkEjyBNQ41jcJgsMntYZi58GQXIPeq45wjWUo1j4tjS/6ZNHPgMNLAyuiyEMUNwptsbVnU15VBmMVzx3M3isXJNinLyEgOcovpbpTzhYORVkkzj3r+VZyNb7094NiIMOqJild1JtZToB50e6XWoe1Y8TmPcUucRv0IsKF5XamuGyjDBbcyNdL/AK1GOOOQgS3Qn66/qKFTq4GIpVTZMV8mvVAjIN7EHSmU8IDMQRbZR5DzoR4ze5sQdNBt5UbyagOJkZoBJJz5Lctlu1xsw6fHSqJw0khZhe+ynt6UWCyLy2N1JGhr1YQRlGsfrr6VUMBCOzOADAVizvmUWHXz9KsEFhoPIUc1kAXRVqxIEeLmtqDsB1rjVA7kBD0JXh8D/LEsjEX91Qd/OlPGJCDJk1e5/Oniu4UZEYhQcq97VleJTsc5kBB2I7GgqS7zRtafEHMUnEPHMst7sp+BoYcSxcOIeRMQ92N2BNwfKo4iTw6nWhTvWxTQcdzKuKnz0ZvsRNDh+SJnytKbIo1vejRLgIJ0w6YuN8Q9vCuo+BrEzSLLDhUSQyLFCEvbS9yTb4mqRoRl0sb6Uu1sGXGcSfPxM3eMJRMv5Upx2OGHjXOWYE+ECqMLxl3EEMq3I0aZmuW9Ral3EcS2JnuwygaD/NK07YhsPHTcgU8r3Bcf48VK4N1ZrgjrQ1qLKgpcEEeVVcv0rQVgBiIPyLZHuaXATmeBZFFiujClnE82KeTMLDt6frSmfiErYFcLEzIMxL5WIzjtUMHPNhULFc8TWFmOgN+n40KnQNMlozVrCsAmNezPeSR0oqFcvit661ZNicMkrx59U3Nrj09a8zZh7uh60VnLLgiKU6XjfIMrTES4dphGx/mKVNj3qOCxjYWDEYfeOexK7DMNiauhOHST/wAiDmr0GYrr0v5X3oUoTe4A9K4KmJJaoW3GOCjWaMOEO9mosQ8o5h7o70qgkaNVjUWs+e46ntTSSUYgAR3AtrekqrYbB6mrbjK67hGC4tPBMBnPKJsUA3rSNPDzGUSKWQ+Nc1yPWsfHfDyqzKCVN9djUcPi8RFj5JkIJe6sW1HyoDoDtZJXn33NqjRSe7dRtcV48HLIKj+Vbp0NVYRWxWChmjGXOuq/Z6H8qLTEQhDBO1zexsP1pYuwipG8YlKwrlZZGAjNrafGrcub3MoUbGiBhoxYaEeeteT2ghZtPIHrVfMZwCk4gEkcRkGeUZvW1EsPBbMxt1Y7Vn8S7SOXe1z2FUS4+UxGLmsUIAtVwC8cajgDJh3EuMMIhBhyUjW4Y9SazWOnEqAKxYnuauxAaRTahhA2htrT1KmF3BPV4qUQaMVyxH3m61SVNNnw11Oa3xqsYLwkv8KfWqMTKq0Xz1BsBGzysBsF17UeYd/IVfBL7NhBAFXfMW8qqxbhoLxOoc7ITrQWqsxxGqNqoHJotkmeBzlfbp0paJ5Rn/mMc173NWz57nNvVQhZluKdpgATPqsSxxGfAImxGKMQ0GUkknatEOFC3jc5utlvWW4OjRY+KZhZYyXzE2tobfjWlONZvFzRqOjUjdBi/wAZpWYp8M1BM8I716IqbnAvnc+zPlOykHQUVDwqEpmY4gEdMov8K5rgDcsLUxAsJJ2N/KjMIjJMokDZLG6t+lHrhJopMy4d9CbXHSj4eGSzxMy65d0ZBp8zQ3uARLi3K7iRUWR+19BU0w9mYXDeYpp7HDGSvKxDkdbAAn07VdHDh/DnhxS6a5LHWhGuBC+D3iKkw9ztVkYMbWNyAdRWhj4bh2hLx8xzbTW2vY2FCz8PmLeGEoNLdTQWrBtGFogK2RqBHJNowKsdvOqmwQZs6nxdQetMI+F4l2BCG4Pp+dHxcNxAAEsIHS/MXb50HyBNCGdqeckjMXYfFcRjVUSTlooFrAaAdKbogl8aDQm9qmnDmPi8N+2aiIsLLCn8vKbnvQncHqLM9Mfr3K5Ukkjyu9lAt71hYUuxWKYBY1UyCPuf90pjJhZyhurG7X0FCNg5rWWJh55aqo+5NM0/ZEUyzuykZBm72oWRr6FQKbScNnckCNrHfpUf4LIBdygH3rU0roohnKH3EoZ+YCdB1A6irneFYy4uvTKaPfBlTliMR8y/WqcRwbiE+UsY2A2s4H6UTyK0pxUbzE2MnVowEIN99Nqq9oYRBDuOvenKfRrGsfEI1Hcvf5aV0vAOQVL4hDc6BUY/leirVpKMQblqjZzEQWSY2UE6bCq8RhZYwDlp8+AMemHQsSLFspH51THwbEzvrZB1aRrD96KlyM5zKVLYBfZJiF8PaxZgx622FRygCw08qe4ngk0NrMJengU6VQvCpGYCSJlBPibKdPwo63NMjuJNaVOWRFEkm4XRSLWG1QErgWVmA8jWlT6LrIMyyPb5fmAa9P0U10xBHlYH9K78ykPcqbR27gh41NfXEP8AM1fHxnw+LEPm+NZH2kk6ED51MYkjcrQms1PqMJeYM1f8YnvZZW+dEJxlgNZHJ+9WOGK/qq+GQkoZLhWFw3ehtaDEKLvJxNZ/GGJ8GKNuxvpREHEmbVsV/wDVY3nhTYNVseMynegtZ61DrcqfQm4XH2SwlBPc1VLxGQW8f5VlFxxB1Y1fFKZBmBci+otSz2xXZjFLxO2ANzRDikymwe9+wvV6cSlOrMPx/es5zo0azZy1WLjFCnSUkC47flQ/CSIQrR6mnj4kR9ai4eIsx0c2+6KyAmxJUFIn8WguDrTZGKAILk7Egb0NqWIJ6FNhqaCXiZWLpfuRS6bjE4uM6W8rUJOJeXYa37b0BPh3CiSR8t9wDqKgL9yiW9Meoe3GJOrX+NQbjBI978RSObwD/lJPpQ7MB9cj8KZWgDsSzGmpwRHb8VnB8BYj74/aqn4/iY/fjYfH/FJg8pYWfwfeFWFlYFTdh560TwAdyC9M+o0//QMR4kN/vVMcYkcDlxza/ZF6RTqmTwAXHQ1Vym5Y8cebycH9asKCmcWVTgbj2TieK1KGTTcW1qpOOYhX1Bb7xtSMiddUOX+6xqqR5jYySD1zURbdf9lGqD6mgk45M22aMj+oa1AcalBGaZ/TNWdkxK7Fr26jrVYmQn/kX430owtBjqLtchTjM1g48Laqx8y1RPHB9k/9qynPvtmI7iu9oX7TfKq/hLCi7WBBA8edbHW1TAJUZ9FGwUb1nIYMSpSaKSJHkBylnAJv2vTOaTiOUKDh1I00J/WtAMTMTIxqMmCMTZFAO1q9DWYC2+wpLh3x0AycpHJN2YyFr/jRUYeR1eaPK+9la4B2/Krd6EjlvMOOIRmDIyNcdNjUkxBGvh8qoRIoS7JE1zqbW1q4Rhx4PnUYHuEDN6hUcrSAHTfa2tFGTlrZDYntSwSsgCBl1bTXUk9vwq8XXw3Ysd8wJt8qCygxqnVYDUKil8YzXIvrR0GHDSMJQcijTXU0rhcILs5JHe37USMb5n50JqZPUMlcIPl3NLHiljjVVYhVGg7VwxSL4u9Z0YtwuYsSNgagce3U0H8XMK14BNOeJW6n5VCTiAkUqwvfqRWZOO86j7bVhZiCN79RvKVLgBjUJYUKNy5PH0vSr209zXHFMNnsaILfEqbvOzPJJmjc3Y3+t2qtsSQM1/nXr4kEgPYk7aa0uxEl2YG3woipvYg2cEZBhLY5x7p08qiuNZBbal7NY2qJcaBra6W70bxrFDUbMZYjjJ5THEOS++Zm1NBy8Wg5IcszE7LmGtUZI23jU/2iotBGdolH9oFcKQkGu/3Lo8dh3UeMXIvlzbVcHjLWAP8A21H4UAYcrArHGR57/lViiwvlCt3U0QLiU5mTjxynEPC1tHtcHpb870UXsdZAPhQEMKQzNKCxZt7mri5J3P8A2NRgyysRM/GMl3RmVrbg2qbYycxqpckXrq6hAykaYe6rH4ic29zeiwTXV1MSB3JZmuNTU3QGF73Oo+sRXV1UfqFTuDw4LDhw/LuR3Joy+Vmt0tbU17XUv7jlPqeM5KnauVzaurqOo1Fah+UkXfle8bZtr6bVW0jd66urgJDGQ5jd64ux611dRRBGcGPevQzEXzEV1dUESwlE680gMzAXBsGIFeaIoVQLDaurqEe5cGQU52IO1CMrNIrcxr76W3rq6r+oMwyLSNRXrEjY2rq6rCRIXPeuua6uqZ0iSa8zGurq6RP/2Q=='
+        img.onload = () => {
+            // 创建纹理对象
+            const texture = gl.createTexture()
+            // 反转图片y轴
+            gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 1)
+            // 激活一个纹理单元
+            gl.activeTexture(gl.TEXTURE0)
+            // 绑定纹理对象
+            gl.bindTexture(gl.TEXTURE_2D, texture)
+            // 设置纹理属性
+            // 放大和缩小的逻辑
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
+            // 横向 纵向 平铺的方式
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
+            // 将图片分配给纹理对象
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img)
+            // 纹理单元传递给着色器
+            gl.uniform1i(sampler, 0)
+            // 绘制
+            gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4)
+        }
+
+    </script>
+</body>
+
+</html>
