@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<!-- 后面的变换矩阵在最前 -->
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>复合变换</title>
+</head>
+<style>
+    canvas {
+        height: 500px;
+        width: 500px;
+        background-color: aquamarine;
+    }
+</style>
+
+<body>
+    <script type="x-shader/x-vertex" id="vertex">
+        // 顶点坐标
+        attribute vec4 a_position;
+        // 缩放矩阵
+        uniform mat4 zoom;
+        // 平移矩阵
+        uniform mat4 translate;
+        // 旋转矩阵
+        uniform mat4 rotate;
+        void main(){
+            // 先平移,再缩放,再旋转
+            gl_Position = rotate * zoom  * translate *  a_position;
+            // gl_Position = a_position;
+            gl_PointSize = 3.0;
+        }
+    </script>
+    <script type="x-shader/x-fragment" id="fragment">
+        // 设置精度
+        precision mediump float;
+        // 顶点颜色
+        uniform vec4 a_color;
+        void main(){
+            gl_FragColor = a_color;
+        }
+    </script>
+    <canvas id="gl" width="500" height="500"></canvas>
+    <script type="module">
+        import { createShader, createProgram } from '../../lib/lib.js'
+        // 获取着色器源码
+        const vertexSource = document.getElementById("vertex").text
+        const fragmentSource = document.getElementById("fragment").text
+        const canvas = document.getElementById("gl")
+        // 获取着色器渲染上下文
+        const gl = canvas.getContext("webgl")
+        // 创建着色器对象
+        const vertexShader = createShader(gl, gl.VERTEX_SHADER, vertexSource)
+        const fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fragmentSource)
+        // 创建着色器程序
+        const program = createProgram(gl, vertexShader, fragmentShader)
+        // 使用着色器程序
+        gl.useProgram(program)
+        // 获取属性
+        const aPosition = gl.getAttribLocation(program, 'a_position')
+        // 获取变量
+        const zoom = gl.getUniformLocation(program, 'zoom')
+        const translate = gl.getUniformLocation(program, 'translate')
+        const rotate = gl.getUniformLocation(program, 'rotate')
+        const aColor = gl.getUniformLocation(program, 'a_color')
+        // 设置颜色
+        gl.uniform4f(aColor, 1.0, 1.0, 1.0, 1.0)
+        // 设置位置坐标
+        const locations = [
+            -0.3, -0.3, 0,1,
+            -0.3, 0.3, 0,1,
+            0.3, -0.3, 0,1,
+            0.3, 0.3, 0,1
+        ]
+        // 创建缓冲区
+        const positionBuffer = gl.createBuffer()
+        // 绑定缓冲区
+        gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer)
+        // 顶点数据写入缓冲区对象
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(locations), gl.STATIC_DRAW)
+        // 给attribute变量赋值
+        gl.vertexAttribPointer(aPosition, 4, gl.FLOAT, false, 4 * 4, 0)
+        // 激活attribute变量
+        gl.enableVertexAttribArray(aPosition)
+        // 缩放
+        const xZoom = 0.5
+        const yZoom = 1
+        // 缩放矩阵
+        const zoomMat = [
+            xZoom,0,0,0,
+            0,yZoom,0,0,
+            0,0,1,0,
+            0,0,0,1
+
+        ]
+        // 旋转
+        const angle = 30
+        const cosb = Math.cos(angle * Math.PI / 180)
+        const sinb = Math.sin(angle * Math.PI / 180)
+        const rotateMat = [
+                cosb, sinb, 0, 0,
+                -sinb, cosb, 0, 0,
+                0, 0, 1, 0,
+                0, 0, 0, 1
+            ]
+
+        // 平移
+        let tx = 0.3
+        let ty = 0.3
+        let tz = 0
+        const translateMat = [
+                1, 0, 0, 0,
+                0, 1, 0, 0,
+                0, 0, 1, 0,
+                tx, ty, tz, 1
+            ]
+        // 传递参数
+        gl.uniformMatrix4fv(rotate,false,new Float32Array(rotateMat))
+        gl.uniformMatrix4fv(zoom,false,new Float32Array(zoomMat))
+        gl.uniformMatrix4fv(translate,false,new Float32Array(translateMat))
+        // 绘制
+        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4)
+    </script>
+</body>
+
+</html>

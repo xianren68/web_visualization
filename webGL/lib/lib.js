@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * 创建着色器
  * @param {WebGLRenderingContext} gl  渲染上下文
@@ -8,6 +9,9 @@
 export function createShader(gl, type, source) {
     // 创建着色器对象
     const shader = gl.createShader(type)
+    if(!shader){
+        return null
+    }
     // 添加数据源
     gl.shaderSource(shader, source)
     // 编译，生成着色器
@@ -31,6 +35,9 @@ export function createShader(gl, type, source) {
 export function createProgram(gl, vertexShader, fragmentShader) {
     // 创建着色器程序
     const program = gl.createProgram()
+    if(!program){
+        return null
+    }
     gl.attachShader(program, vertexShader)
     gl.attachShader(program, fragmentShader)
     gl.linkProgram(program)
@@ -79,7 +86,7 @@ export function drawCircle(point, radius, nums) {
  * @param {number} inner 小圆半径
  * @param {number} outer 大圆半径
  * @param {number} nums 由多少个三角形组成
- * @return {Array<number>} 顶点坐标
+ * @return {{points:Array<number>,indexs:Array<number>}} 顶点坐标,顶点索引
  */
 export function drawRing(point, inner, outer, nums) {
     // 顶点坐标
